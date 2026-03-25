@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Граф партнёрств — имена</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Raleway:wght@300;400;500;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#0b0d14;color:#e0d9ce;font-family:'Raleway',sans-serif;font-weight:300;overflow:hidden;height:100vh;width:100vw}
+#bg{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 65% 55% at 18% 28%,rgba(79,195,247,.07) 0%,transparent 60%),radial-gradient(ellipse 55% 50% at 78% 70%,rgba(174,213,129,.06) 0%,transparent 60%),radial-gradient(ellipse 45% 40% at 50% 8%,rgba(255,183,77,.05) 0%,transparent 55%),#0b0d14}
+header{position:fixed;top:0;left:0;right:0;z-index:30;padding:12px 22px 8px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;background:linear-gradient(to bottom,rgba(11,13,20,.98) 60%,transparent)}
+h1{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:clamp(13px,1.4vw,19px);letter-spacing:.07em;line-height:1.2;white-space:nowrap}
+h1 em{display:block;font-style:normal;font-family:'Raleway',sans-serif;font-size:.43em;letter-spacing:.25em;text-transform:uppercase;color:#525050;margin-bottom:2px}
+#cleg{display:flex;flex-wrap:wrap;gap:3px 8px;align-items:center;justify-content:flex-end;max-width:660px}
+.cl-item{display:flex;align-items:center;gap:5px;font-size:7.5px;letter-spacing:.08em;text-transform:uppercase;color:#606060;cursor:pointer;padding:2px 6px;border-radius:3px;border:1px solid transparent;transition:all .15s;white-space:nowrap}
+.cl-item:hover{border-color:rgba(255,255,255,.18);color:#c0b8a8}
+.cl-item.active{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.07);color:#e0d9ce}
+.cl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.cl-count{opacity:.5;font-size:7px}
+#gc{position:fixed;inset:0;z-index:1}svg{width:100%;height:100%}
+.link{stroke-opacity:.2;transition:stroke-opacity .2s;stroke-linecap:round}
+.link.hi{stroke-opacity:.85;stroke-width:2.4px!important}.link.dim{stroke-opacity:.025}
+.node{cursor:pointer}.node .nc{transition:filter .22s,opacity .22s}
+.node.hi .nc{filter:brightness(1.4) drop-shadow(0 0 12px var(--c))}
+.node.dim .nc,.node.dim .ring{opacity:.06}.node.dim .dlab,.node.dim .nl{opacity:.04}
+.ring{transition:opacity .22s}
+.nl{font-family:'Raleway',sans-serif;font-weight:500;fill:#ede5d8;pointer-events:none;text-anchor:middle;paint-order:stroke;stroke:#0b0d14;stroke-width:3.5px;transition:opacity .22s}
+.node.hi .nl{fill:#fff;font-weight:600}
+.dlab{font-family:'Raleway',sans-serif;font-weight:700;fill:rgba(255,255,255,.92);pointer-events:none;dominant-baseline:central;text-anchor:middle;transition:opacity .22s}
+#tt{position:fixed;z-index:40;background:rgba(10,12,20,.97);border:1px solid rgba(190,170,110,.16);padding:14px 18px;max-width:305px;min-width:190px;pointer-events:none;opacity:0;transition:opacity .14s;backdrop-filter:blur(14px)}
+#tt.show{opacity:1}#tt h3{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:17px;color:#e0d9ce;line-height:1.3;margin-bottom:5px}
+.tt-badge{font-size:8.5px;letter-spacing:.17em;text-transform:uppercase;padding:2px 9px;border-radius:2px;display:inline-flex;align-items:center;gap:5px;margin-bottom:7px}
+.tt-row{font-size:10.5px;color:#686056;margin-bottom:2px}.tt-row strong{color:#bdb59a}
+.tt-cn{margin-top:8px}.tt-cn-h{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:#454038;margin-bottom:4px}
+.tt-cn div{font-size:10.5px;color:#a09888;padding:1.5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+#sw{position:fixed;top:56px;right:22px;z-index:30}
+#srch{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#a09888;font-family:'Raleway',sans-serif;font-size:11px;font-weight:300;padding:6px 12px;width:180px;outline:none;letter-spacing:.05em;border-radius:2px}
+#srch::placeholder{color:#3a3830}#srch:focus{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.07)}
+#ctrls{position:fixed;bottom:20px;right:20px;z-index:30;display:flex;flex-direction:column;gap:6px}
+.cbtn{width:33px;height:33px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);color:#686056;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;border-radius:3px;transition:background .18s,color .18s}
+.cbtn:hover{background:rgba(255,255,255,.1);color:#e0d9ce}
+#stats{position:fixed;bottom:20px;left:22px;z-index:30;font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:#3a3630;line-height:2.1}#stats strong{color:#686056}
+#hint{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:30;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#2a2820;pointer-events:none;animation:fp 4s ease-in-out infinite;transition:opacity 1.5s}
+@keyframes fp{0%,100%{opacity:.5}50%{opacity:1}}
+</style></head><body>
+<div id="bg"></div>
+<header>
+  <h1><em>Выкса · Творческое сообщество · Кластеризация Лейдена</em>Граф партнёрств — имена</h1>
+  <div id="cleg"></div>
+</header>
+<div id="sw"><input id="srch" type="text" placeholder="Поиск…"></div>
+<div id="gc"><svg id="svg"></svg></div>
+<div id="tt">
+  <h3 id="tt-name"></h3>
+  <div id="tt-badge" class="tt-badge"></div>
+  <div class="tt-row">Связей: <strong id="tt-deg"></strong></div>
+  <div class="tt-row">Тип: <strong id="tt-type"></strong></div>
+  <div class="tt-cn" id="tt-cn"></div>
+</div>
+<div id="ctrls">
+  <button class="cbtn" id="bzin">+</button>
+  <button class="cbtn" id="bzout">−</button>
+  <button class="cbtn" id="brst">⌂</button>
+</div>
+<div id="stats">Узлов: <strong id="sn">0</strong><br>Рёбер: <strong id="se">0</strong></div>
+<div id="hint">Клик на кластер — фильтр · Клик на узел — детали · Прокрутите для масштаба</div>
+<script>
+const RAW_NODES=[{"id": "Екатерина Голотвина", "label": "Екатерина Голотвина", "cluster": 0, "sphere": "НХП и ремёсла", "isMain": true, "deg": 8}, {"id": "Наумов Сергей", "label": "Наумов Сергей", "cluster": 0, "sphere": "Дизайн", "isMain": true, "deg": 4}, {"id": "Наумова Александра", "label": "Наумова Александра", "cluster": 0, "sphere": "НХП и ремёсла", "isMain": true, "deg": 17}, {"id": "Сухарькова Светлана", "label": "Сухарькова Светлана", "cluster": 4, "sphere": "НХП и ремёсла", "isMain": true, "deg": 1}, {"id": "Мария Ярославцева", "label": "Мария Ярославцева", "cluster": 4, "sphere": "НХП и ремёсла", "isMain": true, "deg": 3}, {"id": "Попова Татьяна", "label": "Попова Татьяна", "cluster": 2, "sphere": "Другое", "isMain": true, "deg": 3}, {"id": "Киселева Ольга", "label": "Киселева Ольга", "cluster": 6, "sphere": "Арт-индустрия", "isMain": true, "deg": 4}, {"id": "Абрахина Дарья", "label": "Абрахина Дарья", "cluster": 1, "sphere": "Арт-индустрия", "isMain": true, "deg": 4}, {"id": "Красных Ирина", "label": "Красных Ирина", "cluster": 1, "sphere": "НХП и ремёсла", "isMain": true, "deg": 4}, {"id": "Рузина Юлия", "label": "Рузина Юлия", "cluster": 2, "sphere": "НХП и ремёсла", "isMain": true, "deg": 5}, {"id": "Загребина Людмила", "label": "Загребина Людмила", "cluster": 5, "sphere": "Гастрономия", "isMain": true, "deg": 4}, {"id": "Смирновы", "label": "Смирновы", "cluster": 4, "sphere": "НХП и ремёсла", "isMain": true, "deg": 5}, {"id": "Юлия Цыброва", "label": "Юлия Цыброва", "cluster": 1, "sphere": "Другое", "isMain": true, "deg": 5}, {"id": "Грибанова Юлия", "label": "Грибанова Юлия", "cluster": -1, "sphere": "Другое", "isMain": true, "deg": 0}, {"id": "Малютин Николай", "label": "Малютин Николай", "cluster": 7, "sphere": "Другое", "isMain": true, "deg": 2}, {"id": "Сельманова Евгения", "label": "Сельманова Евгения", "cluster": 1, "sphere": "Гастрономия", "isMain": true, "deg": 2}, {"id": "Чуркина Ольга", "label": "Чуркина Ольга", "cluster": -1, "sphere": "Другое", "isMain": true, "deg": 0}, {"id": "Сячина Надежда", "label": "Сячина Надежда", "cluster": -1, "sphere": "Другое", "isMain": true, "deg": 0}, {"id": "Мушников Михаил", "label": "Мушников Михаил", "cluster": 5, "sphere": "НХП и ремёсла", "isMain": true, "deg": 7}, {"id": "Беляева Галина", "label": "Беляева Галина", "cluster": 1, "sphere": "Гастрономия", "isMain": true, "deg": 7}, {"id": "Земцова Полина", "label": "Земцова Полина", "cluster": 6, "sphere": "Арт-индустрия", "isMain": true, "deg": 3}, {"id": "Комаровы", "label": "Комаровы", "cluster": 0, "sphere": "Арт-индустрия", "isMain": true, "deg": 9}, {"id": "Гринченко Светлана", "label": "Гринченко Светлана", "cluster": 8, "sphere": "НХП и ремёсла", "isMain": true, "deg": 1}, {"id": "Ольга Иняева", "label": "Ольга Иняева", "cluster": 2, "sphere": "Дизайн", "isMain": true, "deg": 4}, {"id": "Матюшенко Анна", "label": "Матюшенко Анна", "cluster": 7, "sphere": "Арт-индустрия", "isMain": true, "deg": 3}, {"id": "Никита Иняев", "label": "Никита Иняев", "cluster": 5, "sphere": "Другое", "isMain": true, "deg": 1}, {"id": "Русское Сергей", "label": "Русское Сергей", "cluster": 0, "sphere": "НХП и ремёсла", "isMain": true, "deg": 2}, {"id": "Осипова Ирина", "label": "Осипова Ирина", "cluster": 4, "sphere": "НХП и ремёсла", "isMain": true, "deg": 4}, {"id": "Щербина Анастасия", "label": "Щербина Анастасия", "cluster": 5, "sphere": "НХП и ремёсла", "isMain": true, "deg": 5}, {"id": "Азова Мария", "label": "Азова Мария", "cluster": 5, "sphere": "Гастрономия", "isMain": true, "deg": 4}, {"id": "Евгения Митенкова", "label": "Евгения Митенкова", "cluster": 5, "sphere": "Другое", "isMain": true, "deg": 8}, {"id": "Аллахвердиева Шафига", "label": "Аллахвердиева Шафига", "cluster": 2, "sphere": "НХП и ремёсла", "isMain": true, "deg": 4}, {"id": "Матчин Андрей", "label": "Матчин Андрей", "cluster": 11, "sphere": "Другое", "isMain": true, "deg": 0}, {"id": "Ляшенко Андрей", "label": "Ляшенко Андрей", "cluster": 5, "sphere": "Другое", "isMain": true, "deg": 4}, {"id": "Митенкова Екатерина", "label": "Митенкова Екатерина", "cluster": 5, "sphere": "НХП и ремёсла", "isMain": true, "deg": 3}, {"id": "Тугарёва Оксана", "label": "Тугарёва Оксана", "cluster": 0, "sphere": "Исполнительские искусства", "isMain": true, "deg": 7}, {"id": "Самсонова Надежда", "label": "Самсонова Надежда", "cluster": 2, "sphere": "Дизайн", "isMain": true, "deg": 3}, {"id": "Дарья Епишкова", "label": "Дарья Епишкова", "cluster": 6, "sphere": "Отдых и развлечения", "isMain": true, "deg": 11}, {"id": "Завьялова Ольга", "label": "Завьялова Ольга", "cluster": 1, "sphere": "НХП и ремёсла", "isMain": true, "deg": 5}, {"id": "Даниил Зудин", "label": "Даниил Зудин", "cluster": 3, "sphere": "Арт-индустрия", "isMain": true, "deg": 3}, {"id": "Шмакова Елена", "label": "Шмакова Елена", "cluster": 9, "sphere": "Другое", "isMain": true, "deg": 2}, {"id": "Карповы", "label": "Карповы", "cluster": 0, "sphere": "Дизайн", "isMain": true, "deg": 7}, {"id": "Рогожинская Елена", "label": "Рогожинская Елена", "cluster": 1, "sphere": "Другое", "isMain": true, "deg": 6}, {"id": "Карпухина Елена", "label": "Карпухина Елена", "cluster": 1, "sphere": "Мода", "isMain": true, "deg": 8}, {"id": "Шибанова Вера", "label": "Шибанова Вера", "cluster": 5, "sphere": "Другое", "isMain": true, "deg": 5}, {"id": "Татьяна Ганина", "label": "Татьяна Ганина", "cluster": 4, "sphere": "НХП и ремёсла", "isMain": true, "deg": 1}, {"id": "Золина Ольга", "label": "Золина Ольга", "cluster": 3, "sphere": "Арт-индустрия", "isMain": true, "deg": 8}, {"id": "Усас Алексей", "label": "Усас Алексей", "cluster": 0, "sphere": "Арт-индустрия", "isMain": true, "deg": 1}, {"id": "Валентин Крекинг", "label": "Валентин Крекинг", "cluster": 0, "sphere": "Арт-индустрия", "isMain": true, "deg": 1}, {"id": "Павел Пителин", "label": "Павел Пителин", "cluster": 0, "sphere": "Арт-индустрия", "isMain": true, "deg": 1}, {"id": "Любовь Морова", "label": "Любовь Морова", "cluster": 3, "sphere": "НХП и ремёсла", "isMain": false, "deg": 3}, {"id": "Мария Сарычева", "label": "Мария Сарычева", "cluster": 0, "sphere": "Арт-индустрия", "isMain": false, "deg": 5}, {"id": "Татьяна Новикова", "label": "Татьяна Новикова", "cluster": 0, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Елена Дергач", "label": "Елена Дергач", "cluster": 0, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Даниил Москвин", "label": "Даниил Москвин", "cluster": 0, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Татьяна Бодрова", "label": "Татьяна Бодрова", "cluster": 0, "sphere": "Другое", "isMain": false, "deg": 3}, {"id": "Красные зори", "label": "Красные зори", "cluster": 4, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Иван Баринов", "label": "Иван Баринов", "cluster": 6, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Остроглазова Татьяна", "label": "Остроглазова Татьяна", "cluster": 6, "sphere": "Другое", "isMain": false, "deg": 2}, {"id": "Татьяна Козлова", "label": "Татьяна Козлова", "cluster": 1, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Седова Наталья", "label": "Седова Наталья", "cluster": 1, "sphere": "Другое", "isMain": false, "deg": 4}, {"id": "Марина Яковлева", "label": "Марина Яковлева", "cluster": 1, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Шальнева Полина", "label": "Шальнева Полина", "cluster": 7, "sphere": "Арт-индустрия", "isMain": false, "deg": 2}, {"id": "Павел Ильминов", "label": "Павел Ильминов", "cluster": 7, "sphere": "Арт-индустрия", "isMain": false, "deg": 1}, {"id": "Екатерина Касторина", "label": "Екатерина Касторина", "cluster": 1, "sphere": "НХП и ремёсла", "isMain": false, "deg": 1}, {"id": "Пантелеев Иван", "label": "Пантелеев Иван", "cluster": 5, "sphere": "НХП и ремёсла", "isMain": false, "deg": 1}, {"id": "Карпухин Артём", "label": "Карпухин Артём", "cluster": 6, "sphere": "Арт-индустрия", "isMain": false, "deg": 1}, {"id": "Ильичёва Ольга", "label": "Ильичёва Ольга", "cluster": 6, "sphere": "Арт-индустрия", "isMain": false, "deg": 1}, {"id": "Дятлов Антон", "label": "Дятлов Антон", "cluster": 0, "sphere": "Музыка", "isMain": false, "deg": 1}, {"id": "Жильцов Роман", "label": "Жильцов Роман", "cluster": 0, "sphere": "Музыка", "isMain": false, "deg": 1}, {"id": "Подуруев Роман", "label": "Подуруев Роман", "cluster": 8, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Анастасия Сидоренко", "label": "Анастасия Сидоренко", "cluster": 2, "sphere": "НХП и ремёсла", "isMain": false, "deg": 1}, {"id": "Солдатова Оксана", "label": "Солдатова Оксана", "cluster": 5, "sphere": "НХП и ремёсла", "isMain": false, "deg": 3}, {"id": "Маслихина Алёна", "label": "Маслихина Алёна", "cluster": 5, "sphere": "НХП и ремёсла", "isMain": false, "deg": 2}, {"id": "Пынкова Евгения", "label": "Пынкова Евгения", "cluster": 5, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Анна Матюгина", "label": "Анна Матюгина", "cluster": 5, "sphere": "Гастрономия", "isMain": false, "deg": 2}, {"id": "Левина Анна", "label": "Левина Анна", "cluster": 5, "sphere": "Гастрономия", "isMain": false, "deg": 1}, {"id": "Сторонкина Ксения", "label": "Сторонкина Ксения", "cluster": 5, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Альбина Вознесенская", "label": "Альбина Вознесенская", "cluster": 2, "sphere": "Арт-индустрия", "isMain": false, "deg": 1}, {"id": "Сергей Милов", "label": "Сергей Милов", "cluster": 2, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Баикин Александр", "label": "Баикин Александр", "cluster": 5, "sphere": "Отдых и развлечения", "isMain": false, "deg": 1}, {"id": "Дарья Кузнецова", "label": "Дарья Кузнецова", "cluster": 5, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Екатерина Зенина", "label": "Екатерина Зенина", "cluster": 0, "sphere": "Медиа и СМИ", "isMain": false, "deg": 2}, {"id": "Черноморова Вера", "label": "Черноморова Вера", "cluster": 0, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Лонина Анастасия", "label": "Лонина Анастасия", "cluster": 2, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Аникина Елизавета", "label": "Аникина Елизавета", "cluster": 6, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Фролов Михаил", "label": "Фролов Михаил", "cluster": 6, "sphere": "Гастрономия", "isMain": false, "deg": 1}, {"id": "Буданова Полина", "label": "Буданова Полина", "cluster": 6, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Чернецкая Анастасия", "label": "Чернецкая Анастасия", "cluster": 6, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Евгений Ермантович", "label": "Евгений Ермантович", "cluster": 6, "sphere": "Другое", "isMain": false, "deg": 2}, {"id": "Лысов Женя", "label": "Лысов Женя", "cluster": 6, "sphere": "Кино и ТВ", "isMain": false, "deg": 1}, {"id": "Степанова Лера", "label": "Степанова Лера", "cluster": 6, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Елена Деркач", "label": "Елена Деркач", "cluster": 1, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Надежда Седунова", "label": "Надежда Седунова", "cluster": 1, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Илья Усас", "label": "Илья Усас", "cluster": 3, "sphere": "Другое", "isMain": false, "deg": 2}, {"id": "Лера", "label": "Лера", "cluster": 9, "sphere": "Арт-индустрия", "isMain": false, "deg": 1}, {"id": "Зотова Диана", "label": "Зотова Диана", "cluster": 9, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Духова Юлия", "label": "Духова Юлия", "cluster": 1, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Мурашкина Карина", "label": "Мурашкина Карина", "cluster": 1, "sphere": "Другое", "isMain": false, "deg": 1}, {"id": "Ульянов Рома", "label": "Ульянов Рома", "cluster": 3, "sphere": "Арт-индустрия", "isMain": false, "deg": 1}, {"id": "Малышев Матвей", "label": "Малышев Матвей", "cluster": 3, "sphere": "Арт-индустрия", "isMain": false, "deg": 1}, {"id": "Бочкарева Кристина", "label": "Бочкарева Кристина", "cluster": 3, "sphere": "Арт-индустрия", "isMain": false, "deg": 1}, {"id": "Соннов Данила", "label": "Соннов Данила", "cluster": 3, "sphere": "Арт-индустрия", "isMain": false, "deg": 1}, {"id": "Шишков Артем", "label": "Шишков Артем", "cluster": 3, "sphere": "Арт-индустрия", "isMain": false, "deg": 1}, {"id": "Хлебнев Ярослав", "label": "Хлебнев Ярослав", "cluster": 3, "sphere": "Другое", "isMain": false, "deg": 1}];
+const RAW_EDGES=[{"source": "Екатерина Голотвина", "target": "Наумова Александра"}, {"source": "Екатерина Голотвина", "target": "Карповы"}, {"source": "Екатерина Голотвина", "target": "Комаровы"}, {"source": "Екатерина Голотвина", "target": "Беляева Галина"}, {"source": "Екатерина Голотвина", "target": "Любовь Морова"}, {"source": "Наумов Сергей", "target": "Екатерина Голотвина"}, {"source": "Наумов Сергей", "target": "Комаровы"}, {"source": "Наумов Сергей", "target": "Наумова Александра"}, {"source": "Наумов Сергей", "target": "Мария Сарычева"}, {"source": "Наумова Александра", "target": "Комаровы"}, {"source": "Наумова Александра", "target": "Мария Сарычева"}, {"source": "Наумова Александра", "target": "Самсонова Надежда"}, {"source": "Наумова Александра", "target": "Татьяна Новикова"}, {"source": "Наумова Александра", "target": "Елена Дергач"}, {"source": "Наумова Александра", "target": "Карпухина Елена"}, {"source": "Наумова Александра", "target": "Даниил Москвин"}, {"source": "Наумова Александра", "target": "Рузина Юлия"}, {"source": "Наумова Александра", "target": "Татьяна Бодрова"}, {"source": "Сухарькова Светлана", "target": "Смирновы"}, {"source": "Мария Ярославцева", "target": "Наумова Александра"}, {"source": "Мария Ярославцева", "target": "Смирновы"}, {"source": "Мария Ярославцева", "target": "Красные зори"}, {"source": "Попова Татьяна", "target": "Смирновы"}, {"source": "Попова Татьяна", "target": "Рузина Юлия"}, {"source": "Попова Татьяна", "target": "Загребина Людмила"}, {"source": "Киселева Ольга", "target": "Беляева Галина"}, {"source": "Киселева Ольга", "target": "Иван Баринов"}, {"source": "Киселева Ольга", "target": "Остроглазова Татьяна"}, {"source": "Красных Ирина", "target": "Татьяна Козлова"}, {"source": "Красных Ирина", "target": "Рогожинская Елена"}, {"source": "Красных Ирина", "target": "Абрахина Дарья"}, {"source": "Красных Ирина", "target": "Татьяна Бодрова"}, {"source": "Загребина Людмила", "target": "Шибанова Вера"}, {"source": "Загребина Людмила", "target": "Ляшенко Андрей"}, {"source": "Юлия Цыброва", "target": "Карпухина Елена"}, {"source": "Юлия Цыброва", "target": "Седова Наталья"}, {"source": "Юлия Цыброва", "target": "Беляева Галина"}, {"source": "Юлия Цыброва", "target": "Наумова Александра"}, {"source": "Юлия Цыброва", "target": "Марина Яковлева"}, {"source": "Малютин Николай", "target": "Шальнева Полина"}, {"source": "Малютин Николай", "target": "Павел Ильминов"}, {"source": "Сельманова Евгения", "target": "Екатерина Касторина"}, {"source": "Сельманова Евгения", "target": "Рогожинская Елена"}, {"source": "Мушников Михаил", "target": "Пантелеев Иван"}, {"source": "Беляева Галина", "target": "Абрахина Дарья"}, {"source": "Беляева Галина", "target": "Щербина Анастасия"}, {"source": "Беляева Галина", "target": "Карпухина Елена"}, {"source": "Земцова Полина", "target": "Карпухин Артём"}, {"source": "Земцова Полина", "target": "Ильичёва Ольга"}, {"source": "Земцова Полина", "target": "Киселева Ольга"}, {"source": "Комаровы", "target": "Дятлов Антон"}, {"source": "Комаровы", "target": "Жильцов Роман"}, {"source": "Гринченко Светлана", "target": "Подуруев Роман"}, {"source": "Ольга Иняева", "target": "Аллахвердиева Шафига"}, {"source": "Ольга Иняева", "target": "Рузина Юлия"}, {"source": "Ольга Иняева", "target": "Абрахина Дарья"}, {"source": "Ольга Иняева", "target": "Анастасия Сидоренко"}, {"source": "Матюшенко Анна", "target": "Наумова Александра"}, {"source": "Матюшенко Анна", "target": "Шальнева Полина"}, {"source": "Матюшенко Анна", "target": "Мушников Михаил"}, {"source": "Никита Иняев", "target": "Мушников Михаил"}, {"source": "Русское Сергей", "target": "Татьяна Бодрова"}, {"source": "Русское Сергей", "target": "Комаровы"}, {"source": "Осипова Ирина", "target": "Смирновы"}, {"source": "Осипова Ирина", "target": "Екатерина Голотвина"}, {"source": "Осипова Ирина", "target": "Седова Наталья"}, {"source": "Осипова Ирина", "target": "Татьяна Ганина"}, {"source": "Щербина Анастасия", "target": "Рузина Юлия"}, {"source": "Щербина Анастасия", "target": "Солдатова Оксана"}, {"source": "Щербина Анастасия", "target": "Маслихина Алёна"}, {"source": "Щербина Анастасия", "target": "Пынкова Евгения"}, {"source": "Азова Мария", "target": "Солдатова Оксана"}, {"source": "Азова Мария", "target": "Шибанова Вера"}, {"source": "Азова Мария", "target": "Анна Матюгина"}, {"source": "Азова Мария", "target": "Мушников Михаил"}, {"source": "Евгения Митенкова", "target": "Шибанова Вера"}, {"source": "Евгения Митенкова", "target": "Ляшенко Андрей"}, {"source": "Евгения Митенкова", "target": "Левина Анна"}, {"source": "Евгения Митенкова", "target": "Мушников Михаил"}, {"source": "Евгения Митенкова", "target": "Солдатова Оксана"}, {"source": "Евгения Митенкова", "target": "Маслихина Алёна"}, {"source": "Евгения Митенкова", "target": "Сторонкина Ксения"}, {"source": "Евгения Митенкова", "target": "Загребина Людмила"}, {"source": "Аллахвердиева Шафига", "target": "Альбина Вознесенская"}, {"source": "Аллахвердиева Шафига", "target": "Сергей Милов"}, {"source": "Аллахвердиева Шафига", "target": "Наумова Александра"}, {"source": "Ляшенко Андрей", "target": "Шибанова Вера"}, {"source": "Ляшенко Андрей", "target": "Мушников Михаил"}, {"source": "Митенкова Екатерина", "target": "Баикин Александр"}, {"source": "Митенкова Екатерина", "target": "Дарья Кузнецова"}, {"source": "Митенкова Екатерина", "target": "Мушников Михаил"}, {"source": "Тугарёва Оксана", "target": "Комаровы"}, {"source": "Тугарёва Оксана", "target": "Екатерина Голотвина"}, {"source": "Тугарёва Оксана", "target": "Екатерина Зенина"}, {"source": "Тугарёва Оксана", "target": "Наумова Александра"}, {"source": "Тугарёва Оксана", "target": "Смирновы"}, {"source": "Тугарёва Оксана", "target": "Черноморова Вера"}, {"source": "Самсонова Надежда", "target": "Рузина Юлия"}, {"source": "Самсонова Надежда", "target": "Лонина Анастасия"}, {"source": "Дарья Епишкова", "target": "Комаровы"}, {"source": "Дарья Епишкова", "target": "Аникина Елизавета"}, {"source": "Дарья Епишкова", "target": "Остроглазова Татьяна"}, {"source": "Дарья Епишкова", "target": "Фролов Михаил"}, {"source": "Дарья Епишкова", "target": "Буданова Полина"}, {"source": "Дарья Епишкова", "target": "Чернецкая Анастасия"}, {"source": "Дарья Епишкова", "target": "Евгений Ермантович"}, {"source": "Дарья Епишкова", "target": "Лысов Женя"}, {"source": "Дарья Епишкова", "target": "Любовь Морова"}, {"source": "Дарья Епишкова", "target": "Карпухина Елена"}, {"source": "Дарья Епишкова", "target": "Степанова Лера"}, {"source": "Завьялова Ольга", "target": "Рогожинская Елена"}, {"source": "Завьялова Ольга", "target": "Карпухина Елена"}, {"source": "Завьялова Ольга", "target": "Елена Деркач"}, {"source": "Завьялова Ольга", "target": "Надежда Седунова"}, {"source": "Завьялова Ольга", "target": "Абрахина Дарья"}, {"source": "Даниил Зудин", "target": "Золина Ольга"}, {"source": "Даниил Зудин", "target": "Илья Усас"}, {"source": "Даниил Зудин", "target": "Любовь Морова"}, {"source": "Шмакова Елена", "target": "Лера"}, {"source": "Шмакова Елена", "target": "Зотова Диана"}, {"source": "Карповы", "target": "Наумова Александра"}, {"source": "Карповы", "target": "Комаровы"}, {"source": "Карповы", "target": "Тугарёва Оксана"}, {"source": "Карповы", "target": "Екатерина Зенина"}, {"source": "Карповы", "target": "Беляева Галина"}, {"source": "Карповы", "target": "Евгений Ермантович"}, {"source": "Рогожинская Елена", "target": "Карпухина Елена"}, {"source": "Рогожинская Елена", "target": "Седова Наталья"}, {"source": "Рогожинская Елена", "target": "Духова Юлия"}, {"source": "Карпухина Елена", "target": "Седова Наталья"}, {"source": "Карпухина Елена", "target": "Мурашкина Карина"}, {"source": "Шибанова Вера", "target": "Анна Матюгина"}, {"source": "Золина Ольга", "target": "Ульянов Рома"}, {"source": "Золина Ольга", "target": "Малышев Матвей"}, {"source": "Золина Ольга", "target": "Бочкарева Кристина"}, {"source": "Золина Ольга", "target": "Илья Усас"}, {"source": "Золина Ольга", "target": "Соннов Данила"}, {"source": "Золина Ольга", "target": "Шишков Артем"}, {"source": "Золина Ольга", "target": "Хлебнев Ярослав"}, {"source": "Усас Алексей", "target": "Мария Сарычева"}, {"source": "Валентин Крекинг", "target": "Мария Сарычева"}, {"source": "Павел Пителин", "target": "Мария Сарычева"}];
+const CS={
+  0:{color:'#4fc3f7',label:'К0 — Синий Рыцарь, Икса, Авиатор'},
+  1:{color:'#ffb74d',label:'К1 — Просто вкусно, Шерстяника, Страна ОЗ'},
+  2:{color:'#f06292',label:'К2 — Бисеринка, Tales&Stones, Вязание'},
+  3:{color:'#ce93d8',label:'К3 — Диджитал-арт, Spring Ceramics'},
+  4:{color:'#aed581',label:'К4 — Марсель, Созвездие, СветочЪ'},
+  5:{color:'#ba68c8',label:'К5 — Маслодельня, Пан Кабан, Сияй красиво'},
+  6:{color:'#4db6ac',label:'К6 — Кисель, Выксадром, Фото'},
+  7:{color:'#ffd54f',label:'К7 — АстроВыкса, Энни Уайлд'},
+  8:{color:'#ff8a65',label:'К8 — Грин-свеча, Кузница'},
+  9:{color:'#90a4ae',label:'К9 — Цветы и бусины, Палитра'},
+  10:{color:'#e0e0e0',label:'К10 — Крекинг'},
+  11:{color:'#80cbc4',label:'К11 — Матчин Андрей'},
+  '-1':{color:'#5a6070',label:'Без кластера'},
+};
+function cs(c){return CS[c]??CS['-1'];}
+function col(c){return cs(c).color;}
+const NM={};RAW_NODES.forEach(n=>{NM[n.id]=n;});
+const nodes=RAW_NODES,edges=RAW_EDGES;
+const maxDeg=Math.max(...nodes.map(n=>n.deg),1);
+function R(d){return(d.isMain?12:7)+(d.deg/maxDeg)*28;}
+function dfs(d){return Math.max(7.5,Math.min(16,R(d)*0.68));}
+document.getElementById('sn').textContent=nodes.length;
+document.getElementById('se').textContent=edges.length;
+const clegEl=document.getElementById('cleg');
+const cCounts={};nodes.forEach(n=>{const k=String(n.cluster);cCounts[k]=(cCounts[k]||0)+1;});
+[-1,0,1,2,3,4,5,6,7,8,9,10,11].forEach(cid=>{
+  const cnt=cCounts[String(cid)]||0;if(!cnt)return;
+  const s=cs(cid);const btn=document.createElement('div');
+  btn.className='cl-item';btn.dataset.cluster=cid;
+  btn.innerHTML=`<div class="cl-dot" style="background:${s.color};box-shadow:0 0 4px ${s.color}88"></div>${s.label}<span class="cl-count">(${cnt})</span>`;
+  clegEl.appendChild(btn);
+});
+let activeCluster=null;
+clegEl.addEventListener('click',ev=>{
+  const item=ev.target.closest('.cl-item');if(!item)return;
+  const cid=parseInt(item.dataset.cluster);
+  if(activeCluster===cid){activeCluster=null;clegEl.querySelectorAll('.cl-item').forEach(b=>b.classList.remove('active'));clearSel();}
+  else{activeCluster=cid;clegEl.querySelectorAll('.cl-item').forEach(b=>b.classList.toggle('active',b===item));filterByCluster(cid);}
+});
+const svg=d3.select('#svg');const W=()=>window.innerWidth,H=()=>window.innerHeight;
+const g=svg.append('g');
+const zoom=d3.zoom().scaleExtent([0.1,6]).on('zoom',e=>g.attr('transform',e.transform));
+svg.call(zoom);
+const defs=svg.append('defs');
+['gf-a','gf-b'].forEach((id,i)=>{
+  const f=defs.append('filter').attr('id',id);
+  f.append('feGaussianBlur').attr('stdDeviation',i===0?4.5:2).attr('result','b');
+  const m=f.append('feMerge');m.append('feMergeNode').attr('in','b');m.append('feMergeNode').attr('in','SourceGraphic');
+});
+const NCLUST=12;
+function ca(cid){
+  if(cid<0||cid>=NCLUST)return[W()*.5,H()*.5];
+  const a=(cid/NCLUST)*2*Math.PI-Math.PI/2;
+  return[W()/2+W()*.30*Math.cos(a),H()/2+H()*.28*Math.sin(a)];
+}
+const sim=d3.forceSimulation(nodes)
+  .force('link',d3.forceLink(edges).id(d=>d.id).distance(d=>R(d.source)+R(d.target)+70).strength(0.36))
+  .force('charge',d3.forceManyBody().strength(d=>-300-d.deg*22))
+  .force('center',d3.forceCenter(W()/2,H()/2))
+  .force('collision',d3.forceCollide().radius(d=>R(d)+20).strength(0.9))
+  .force('clusterX',d3.forceX(d=>ca(d.cluster)[0]).strength(d=>d.cluster<0?.01:.09))
+  .force('clusterY',d3.forceY(d=>ca(d.cluster)[1]).strength(d=>d.cluster<0?.01:.09))
+  .alphaDecay(0.013);
+const link=g.append('g').selectAll('line').data(edges).join('line')
+  .attr('class','link')
+  .attr('stroke',d=>{const sc=NM[d.source.id||d.source],tc=NM[d.target.id||d.target];if(sc&&tc&&sc.cluster>=0&&sc.cluster===tc.cluster)return col(sc.cluster);return'#484858';})
+  .attr('stroke-width',1.3);
+const node=g.append('g').selectAll('g').data(nodes).join('g')
+  .attr('class','node').style('--c',d=>col(d.cluster))
+  .call(d3.drag()
+    .on('start',(ev,d)=>{if(!ev.active)sim.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y;})
+    .on('drag',(ev,d)=>{d.fx=ev.x;d.fy=ev.y;})
+    .on('end',(ev,d)=>{if(!ev.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}));
+node.append('circle').attr('class','ring').attr('r',d=>R(d)+4).attr('fill','none')
+  .attr('stroke',d=>col(d.cluster)).attr('stroke-opacity',d=>d.cluster<0?.08:(d.isMain?.42:.2))
+  .attr('stroke-width',d=>d.isMain?2:1);
+node.append('circle').attr('class','nc').attr('r',R)
+  .attr('fill',d=>col(d.cluster)).attr('fill-opacity',d=>d.cluster<0?.32:(d.isMain?.84:.42))
+  .attr('stroke',d=>col(d.cluster)).attr('stroke-opacity',.52)
+  .attr('stroke-width',d=>d.isMain?1.8:1)
+  .attr('filter',d=>(d.isMain&&d.cluster>=0)?'url(#gf-a)':null);
+node.append('text').attr('class','dlab').attr('font-size',dfs).text(d=>d.deg||0);
+node.append('text').attr('class','nl').attr('dy',d=>R(d)+14).attr('font-size',d=>d.isMain?11.5:10).text(d=>d.label);
+sim.on('tick',()=>{
+  link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+  node.attr('transform',d=>`translate(${d.x},${d.y})`);
+});
+const tt=document.getElementById('tt');let sel=null;
+function nbrs(d){const ids=new Set([d.id]);edges.forEach(e=>{const s=e.source.id||e.source,t=e.target.id||e.target;if(s===d.id)ids.add(t);if(t===d.id)ids.add(s);});return ids;}
+function filterByCluster(cid){clearSel();node.classed('dim',n=>n.cluster!==cid);node.classed('hi',false);link.classed('dim',e=>{const s=NM[e.source.id||e.source],t=NM[e.target.id||e.target];return!(s?.cluster===cid||t?.cluster===cid);});link.classed('hi',false);tt.classList.remove('show');}
+function selectNode(ev,d){
+  if(sel===d.id){clearSel();return;}sel=d.id;
+  activeCluster=null;clegEl.querySelectorAll('.cl-item').forEach(b=>b.classList.remove('active'));
+  const nb=nbrs(d);
+  node.classed('hi',n=>nb.has(n.id));node.classed('dim',n=>!nb.has(n.id));
+  link.classed('hi',e=>{const s=e.source.id||e.source,t=e.target.id||e.target;return s===d.id||t===d.id;});
+  link.classed('dim',e=>{const s=e.source.id||e.source,t=e.target.id||e.target;return s!==d.id&&t!==d.id;});
+  document.getElementById('tt-name').textContent=d.label;
+  const s=cs(d.cluster);const badge=document.getElementById('tt-badge');
+  badge.style.cssText=`background:${s.color}22;color:${s.color};border:1px solid ${s.color}48`;
+  badge.innerHTML=`<span style="width:7px;height:7px;border-radius:50%;background:${s.color};display:inline-block"></span>${s.label}`;
+  document.getElementById('tt-deg').textContent=d.deg||0;
+  document.getElementById('tt-type').textContent=d.isMain?'Респондент':'Упомянут';
+  const cnEl=document.getElementById('tt-cn');
+  const cids=[...nb].filter(id=>id!==d.id);
+  cnEl.innerHTML=cids.length?'<div class="tt-cn-h">Партнёры</div>'+cids.map(id=>{const n=NM[id];const nc=col(n?.cluster??-1);return`<div>· <b style="color:${nc}">${n?.label||id}</b></div>`;}).join(''):'<div style="font-size:10px;color:#3a3630;margin-top:4px">Нет явных партнёрств</div>';
+  if(ev){let tx=ev.clientX+18,ty=ev.clientY-20;if(tx+310>W())tx=ev.clientX-318;if(ty+380>H())ty=H()-388;tt.style.left=tx+'px';tt.style.top=ty+'px';}
+  tt.classList.add('show');
+}
+function clearSel(){sel=null;node.classed('hi dim',false);link.classed('hi dim',false);tt.classList.remove('show');}
+node.on('click',(ev,d)=>{ev.stopPropagation();selectNode(ev,d);});
+svg.on('click',clearSel);
+document.getElementById('srch').addEventListener('input',function(){
+  const q=this.value.trim().toLowerCase();if(!q){clearSel();return;}
+  const found=nodes.find(n=>n.label.toLowerCase().includes(q));if(found)selectNode(null,found);
+});
+document.getElementById('bzin').onclick=()=>svg.transition().call(zoom.scaleBy,1.3);
+document.getElementById('bzout').onclick=()=>svg.transition().call(zoom.scaleBy,0.77);
+document.getElementById('brst').onclick=()=>svg.transition().duration(750).call(zoom.transform,d3.zoomIdentity.translate(W()/2,H()/2).scale(0.88).translate(-W()/2,-H()/2));
+setTimeout(()=>{document.getElementById('hint').style.opacity=0;},9000);
+</script></body></html>
